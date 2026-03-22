@@ -2,23 +2,28 @@ name: Generate font index
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/font_index.yaml'
-      - 'tools/font_index/**'
   push:
     branches:
       - main
     paths:
       - '.github/workflows/font_index.yaml'
-      - 'tools/font_index/**'
+      - 'generate_font_index.py'
 
 jobs:
   generate-font-index:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout google/fonts (full repo with all font files)
+        uses: actions/checkout@v4
+        with:
+          repository: google/fonts
+          path: google-fonts
+
+      - name: Checkout this repo (for the extraction script)
+        uses: actions/checkout@v4
+        with:
+          path: self
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,16 +35,16 @@ jobs:
 
       - name: Generate font index CSV
         run: |
-          python tools/font_index/generate_font_index.py \
-            --repo-root . \
-            --output tools/font_index/font_index.csv \
+          python self/generate_font_index.py \
+            --repo-root google-fonts \
+            --output font_index.csv \
             --repo-owner google \
             --repo-name fonts \
-            --ref ${{ github.sha }}
+            --ref main
 
       - name: Upload font index artifact
         uses: actions/upload-artifact@v4
         with:
           name: font-index-csv
-          path: tools/font_index/font_index.csv
+          path: font_index.csv
           if-no-files-found: error
